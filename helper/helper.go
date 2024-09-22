@@ -2,8 +2,11 @@ package helper
 
 import (
 	"crypto/md5"
+	"crypto/tls"
 	"fmt"
 	"github.com/dgrijalva/jwt-go"
+	"github.com/jordan-wright/email"
+	"net/smtp"
 )
 
 type userClaims struct {
@@ -48,4 +51,18 @@ func ParseToken(tokenString string) (*userClaims, error) {
 		return nil, fmt.Errorf("Parse Token Error: %v", err)
 	}
 	return userClaim, nil
+}
+
+// 发送邮箱验证码
+func SendCode(toUserEmail string, code string) error {
+	e := email.NewEmail()
+	e.From = "Lijr <1643804185@qq.com>"
+	e.To = []string{toUserEmail}
+	e.Subject = "验证码发送测试"
+	e.HTML = []byte("您的验证码是: <b>" + code + "</b>")
+	//err := e.Send("smtp.qq.com:465", smtp.PlainAuth("", "1643804185@qq.com", "password123", "smtp.qq.com"))
+	//返回 EOF 时，关闭SSL重试
+	err := e.SendWithTLS("smtp.qq.com:465", smtp.PlainAuth("", "1643804185@qq.com", "czcukzmsqsifchag", "smtp.qq.com"),
+		&tls.Config{InsecureSkipVerify: true, ServerName: "smtp.qq.com"})
+	return err
 }

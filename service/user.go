@@ -100,5 +100,35 @@ func Login(c *gin.Context) {
 			"token": token,
 		},
 	})
+}
 
+// SendCode
+// @Summary 发送验证码
+// @Tags 公共方法
+// @Param email formData string true "email"
+// @Success 200 {string} json "{"code":"200","msg","","data":""}"
+// @Router /send-code [post]
+func SendCode(c *gin.Context) {
+	email := c.PostForm("email")
+	if email == "" {
+		c.JSON(http.StatusOK, gin.H{
+			"code": -1,
+			"msg":  "邮箱不能为空",
+		})
+		return
+	}
+	code := "123456"
+	err := helper.SendCode(email, code)
+	if err != nil {
+		c.JSON(http.StatusOK, gin.H{
+			"code": -1,
+			"msg":  "SendCode error:" + err.Error(),
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"code": 200,
+		"msg":  "验证码发送成功",
+	})
 }
