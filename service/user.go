@@ -6,7 +6,9 @@ import (
 	"gin_gorm_oj/models"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
+	"log"
 	"net/http"
+	"time"
 )
 
 // GetUserDetail
@@ -117,7 +119,9 @@ func SendCode(c *gin.Context) {
 		})
 		return
 	}
-	code := "123456"
+	code := helper.GenValidateCode()
+	//将生成的验证码保存在Redis中，有效期60s
+	models.Redis.Set(c, email, code, time.Second*60)
 	err := helper.SendCode(email, code)
 	if err != nil {
 		c.JSON(http.StatusOK, gin.H{
@@ -130,5 +134,100 @@ func SendCode(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"code": 200,
 		"msg":  "验证码发送成功",
+	})
+}
+
+// Register
+// @Summary 用户注册
+// @Tags 公共方法
+// @Param mail formData string true "mail"
+// @Param username formData string true "username"
+// @Param password formData string true "password"
+// @Param phone formData string false "phone"
+// @Param code formData string true "code"
+// @Success 200 {string} json "{"code":"200","msg","","data":""}"
+// @Router /register [post]
+func Register(c *gin.Context) {
+	userCode := c.PostForm("code")
+	mail := c.PostForm("mail")
+	username := c.PostForm("username")
+	password := c.PostForm("password")
+	phone := c.PostForm("phone")
+	if mail == "" || username == "" || password == "" || userCode == "" {
+		c.JSON(http.StatusOK, gin.H{
+			"code": -1,
+			"msg":  "参数不正确",
+		})
+	}
+	//验证码是否正确
+	sysCode, err := models.Redis.Get(c, mail).Result()
+	if err != nil {
+		log.Printf("Get Code error: %v\n", err)
+		c.JSON(http.StatusOK, gin.H{
+			"code": -1,
+			"msg":  "验证码不正确，请重新获取验证码",
+		})
+		return
+	}
+
+	if sysCode != userCode {
+		c.JSON(http.StatusOK, gin.H{
+			"code": -1,
+			"msg":  "验证码不正确",
+		})
+		return
+	}
+
+	//判断邮箱是否已存在
+	var count int64
+	err = models.DB.Model(new(models.UserBasic)).Where("mail = ?", mail).Count(&count).Error
+	if err != nil {
+		c.JSON(http.StatusOK, gin.H{
+			"code": -1,
+			"msg":  "Get User error:" + err.Error(),
+		})
+		return
+	}
+	if count > 0 {
+		c.JSON(http.StatusOK, gin.H{
+			"code": -1,
+			"msg":  "该邮箱已经注册",
+		})
+		return
+	}
+
+	//将用户信息插入数据库
+	userIdentity := helper.GetUUID()
+	data := &models.UserBasic{
+		Identity: userIdentity,
+		Username: username,
+		Password: helper.GetMd5(password),
+		Phone:    phone,
+		Mail:     mail,
+	}
+	err = models.DB.Create(data).Error
+	if err != nil {
+		c.JSON(http.StatusOK, gin.H{
+			"code": -1,
+			"msg":  "Create User error:" + err.Error(),
+		})
+		return
+	}
+
+	//生成token,返回给前端
+	token, err := helper.GenerateToken(userIdentity, username)
+	if err != nil {
+		c.JSON(http.StatusOK, gin.H{
+			"code": -1,
+			"msg":  "GenerateToken error:" + err.Error(),
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"code": 200,
+		"data": map[string]interface{}{
+			"token": token,
+		},
 	})
 }

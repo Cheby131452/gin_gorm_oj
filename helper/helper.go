@@ -6,7 +6,11 @@ import (
 	"fmt"
 	"github.com/dgrijalva/jwt-go"
 	"github.com/jordan-wright/email"
+	uuid "github.com/satori/go.uuid"
+	"math/rand"
 	"net/smtp"
+	"strconv"
+	"time"
 )
 
 type userClaims struct {
@@ -58,11 +62,26 @@ func SendCode(toUserEmail string, code string) error {
 	e := email.NewEmail()
 	e.From = "Lijr <1643804185@qq.com>"
 	e.To = []string{toUserEmail}
-	e.Subject = "验证码发送测试"
+	e.Subject = "验证码已发送，请查收"
 	e.HTML = []byte("您的验证码是: <b>" + code + "</b>")
 	//err := e.Send("smtp.qq.com:465", smtp.PlainAuth("", "1643804185@qq.com", "password123", "smtp.qq.com"))
 	//返回 EOF 时，关闭SSL重试
 	err := e.SendWithTLS("smtp.qq.com:465", smtp.PlainAuth("", "1643804185@qq.com", "czcukzmsqsifchag", "smtp.qq.com"),
 		&tls.Config{InsecureSkipVerify: true, ServerName: "smtp.qq.com"})
 	return err
+}
+
+// 生成UUID
+func GetUUID() string {
+	return uuid.NewV4().String()
+}
+
+// 生成验证码
+func GenValidateCode() string {
+	rand.Seed(time.Now().UnixNano())
+	s := ""
+	for i := 1; i <= 6; i++ {
+		s += strconv.Itoa(rand.Intn(10))
+	}
+	return s
 }
