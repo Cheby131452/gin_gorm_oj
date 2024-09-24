@@ -9,11 +9,12 @@ import (
 	uuid "github.com/satori/go.uuid"
 	"math/rand"
 	"net/smtp"
+	"os"
 	"strconv"
 	"time"
 )
 
-type userClaims struct {
+type UserClaims struct {
 	jwt.StandardClaims
 	Username string `json:"name"`
 	Identity string `json:"identity"`
@@ -30,7 +31,7 @@ func GetMd5(s string) string {
 
 // 生成token
 func GenerateToken(identity string, username string, isAdmin int) (string, error) {
-	userClaims := &userClaims{
+	userClaims := &UserClaims{
 		StandardClaims: jwt.StandardClaims{},
 		Username:       username,
 		Identity:       identity,
@@ -45,8 +46,8 @@ func GenerateToken(identity string, username string, isAdmin int) (string, error
 }
 
 // 解析token
-func ParseToken(tokenString string) (*userClaims, error) {
-	userClaim := new(userClaims)
+func ParseToken(tokenString string) (*UserClaims, error) {
+	userClaim := new(UserClaims)
 	claims, err := jwt.ParseWithClaims(tokenString, userClaim, func(token *jwt.Token) (interface{}, error) {
 		return myKey, nil
 	})
@@ -86,4 +87,21 @@ func GenValidateCode() string {
 		s += strconv.Itoa(rand.Intn(10))
 	}
 	return s
+}
+
+// 保存代码
+func CodeSave(code []byte) (string, error) {
+	dirName := "code/" + GetUUID()
+	path := dirName + "/main.go"
+	err := os.Mkdir(dirName, 0777)
+	if err != nil {
+		return "", err
+	}
+	file, err := os.Create(path)
+	if err != nil {
+		return "", err
+	}
+	defer file.Close()
+	file.Write(code)
+	return path, nil
 }

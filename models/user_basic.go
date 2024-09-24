@@ -14,6 +14,6 @@ type UserBasic struct {
 	IsAdmin          int    `gorm:"column:is_admin;type:tinyint(1)" json:"is_admin"`                  //是否是管理员【0-否，1-是】
 }
 
-func (table *UserBasic) TableName() string {
+func (*UserBasic) TableName() string {
 	return "user_basic"
 }

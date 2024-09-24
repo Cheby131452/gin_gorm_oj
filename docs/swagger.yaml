@@ -379,4 +379,31 @@ paths:
       summary: 用户详情
       tags:
       - 公共方法
+  /user/submit:
+    post:
+      parameters:
+      - description: authorization token
+        in: header
+        name: authorization
+        required: true
+        type: string
+      - description: problem_identity
+        in: query
+        name: problem_identity
+        required: true
+        type: string
+      - description: code
+        in: body
+        name: code
+        required: true
+        schema:
+          type: string
+      responses:
+        "200":
+          description: '{"code":"200","msg","","data":""}'
+          schema:
+            type: string
+      summary: 代码提交
+      tags:
+      - 用户私有方法
 swagger: "2.0"

@@ -590,6 +590,47 @@ const docTemplate = `{
                     }
                 }
             }
+        },
+        "/user/submit": {
+            "post": {
+                "tags": [
+                    "用户私有方法"
+                ],
+                "summary": "代码提交",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "authorization token",
+                        "name": "authorization",
+                        "in": "header",
+                        "required": true
+                    },
+                    {
+                        "type": "string",
+                        "description": "problem_identity",
+                        "name": "problem_identity",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "description": "code",
+                        "name": "code",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "{\"code\":\"200\",\"msg\",\"\",\"data\":\"\"}",
+                        "schema": {
+                            "type": "string"
+                        }
+                    }
+                }
+            }
         }
     }
 }`

@@ -6,7 +6,7 @@ import (
 	"net/http"
 )
 
-func AuthAdmin() gin.HandlerFunc {
+func AuthAdminCheck() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		//检验用户是否是管理员
 		auth := c.GetHeader("Authorization")
