@@ -17,6 +17,7 @@ type userClaims struct {
 	jwt.StandardClaims
 	Username string `json:"name"`
 	Identity string `json:"identity"`
+	IsAdmin  int    `json:"is_admin"`
 }
 
 // 密钥
@@ -28,11 +29,12 @@ func GetMd5(s string) string {
 }
 
 // 生成token
-func GenerateToken(identity string, username string) (string, error) {
+func GenerateToken(identity string, username string, isAdmin int) (string, error) {
 	userClaims := &userClaims{
+		StandardClaims: jwt.StandardClaims{},
 		Username:       username,
 		Identity:       identity,
-		StandardClaims: jwt.StandardClaims{},
+		IsAdmin:        isAdmin,
 	}
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, userClaims)
 	tokenString, err := token.SignedString(myKey)

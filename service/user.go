@@ -2,12 +2,14 @@ package service
 
 import (
 	"errors"
+	"gin_gorm_oj/define"
 	"gin_gorm_oj/helper"
 	"gin_gorm_oj/models"
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 	"log"
 	"net/http"
+	"strconv"
 	"time"
 )
 
@@ -88,7 +90,7 @@ func Login(c *gin.Context) {
 		return
 	}
 	//生成token
-	token, err := helper.GenerateToken(user.Identity, user.Username)
+	token, err := helper.GenerateToken(user.Identity, user.Username, user.IsAdmin)
 	if err != nil {
 		c.JSON(http.StatusOK, gin.H{
 			"code": -1,
@@ -107,12 +109,12 @@ func Login(c *gin.Context) {
 // SendCode
 // @Summary 发送验证码
 // @Tags 公共方法
-// @Param email formData string true "email"
+// @Param mail formData string true "email"
 // @Success 200 {string} json "{"code":"200","msg","","data":""}"
 // @Router /send-code [post]
 func SendCode(c *gin.Context) {
-	email := c.PostForm("email")
-	if email == "" {
+	mail := c.PostForm("mail")
+	if mail == "" {
 		c.JSON(http.StatusOK, gin.H{
 			"code": -1,
 			"msg":  "邮箱不能为空",
@@ -121,8 +123,8 @@ func SendCode(c *gin.Context) {
 	}
 	code := helper.GenValidateCode()
 	//将生成的验证码保存在Redis中，有效期60s
-	models.Redis.Set(c, email, code, time.Second*60)
-	err := helper.SendCode(email, code)
+	models.Redis.Set(c, mail, code, time.Second*60)
+	err := helper.SendCode(mail, code)
 	if err != nil {
 		c.JSON(http.StatusOK, gin.H{
 			"code": -1,
@@ -215,7 +217,7 @@ func Register(c *gin.Context) {
 	}
 
 	//生成token,返回给前端
-	token, err := helper.GenerateToken(userIdentity, username)
+	token, err := helper.GenerateToken(userIdentity, username, data.IsAdmin)
 	if err != nil {
 		c.JSON(http.StatusOK, gin.H{
 			"code": -1,
@@ -228,6 +230,46 @@ func Register(c *gin.Context) {
 		"code": 200,
 		"data": map[string]interface{}{
 			"token": token,
+		},
+	})
+}
+
+// GetRankList
+// @Summary 用户排行榜
+// @Tags 公共方法
+// @Param page query int false "page"
+// @Param size query int false "size"
+// @Success 200 {string} json "{"code":"200","msg","","data":""}"
+// @Router /rank-list [get]
+func GetRankList(c *gin.Context) {
+	page, err := strconv.Atoi(c.DefaultQuery("page", define.DefaultPage))
+	if err != nil {
+		log.Println("GetProblemList page error:", err)
+		return
+	}
+	size, err := strconv.Atoi(c.DefaultQuery("size", define.DefaultSize))
+	if err != nil {
+		log.Println("GetProblemList size error:", err)
+		return
+	}
+	offset := (page - 1) * size
+	var count int64
+	list := make([]*models.UserBasic, 0)
+	err = models.DB.Model(new(models.UserBasic)).Count(&count).Order("finish_problem_num DESC, submit_num ASC").
+		Offset(offset).Limit(size).Find(&list).Error
+	if err != nil {
+		c.JSON(http.StatusOK, gin.H{
+			"code": -1,
+			"msg":  "GetRankList error:" + err.Error(),
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"code": 200,
+		"data": map[string]interface{}{
+			"list":  list,
+			"count": count,
 		},
 	})
 }
